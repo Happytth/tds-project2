@@ -1,10 +1,18 @@
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.7"
 # dependencies = [
-#   "httpx",
+#   "os",
+#   "sys",
+#   "json",
+#   "requests",
 #   "pandas",
+#   "seaborn",
+#   "matplotlib",
+#   "scikit-learn",
+#   "numpy"
 # ]
 # ///
+
 import os
 import sys
 import json
