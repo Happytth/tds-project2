@@ -11,7 +11,7 @@ from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
 import math
 
-os.environ["AIPROXY_TOKEN"] = "your-token-here"
+os.environ["AIPROXY_TOKEN"] = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjIwMDUwMTRAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.4M6INtFWixQ7nWjWl2nkN3Wcopybkd_ZWa-tVf4d8FM"
 
 class DataAnalysisTool:
     def _init_(self, data_path: str):
