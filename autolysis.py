@@ -157,5 +157,5 @@ def main():
     analyzer = DataAnalysisTool(data_path)
     analyzer.execute()
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     main()
