@@ -26,15 +26,21 @@ from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
 import math
 
+# Set your AIPROXY_TOKEN here
 os.environ["AIPROXY_TOKEN"] = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjIwMDUwMTRAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.4M6INtFWixQ7nWjWl2nkN3Wcopybkd_ZWa-tVf4d8FM"
 
 class DataAnalysisTool:
     def __init__(self, data_path: str):
         self.data_path = data_path
+        # Extract dataset name from the file path and use it to create an output folder
+        self.output_dir = os.path.join(os.path.dirname(data_path), os.path.splitext(os.path.basename(data_path))[0])
+        os.makedirs(self.output_dir, exist_ok=True)  # Create the output directory if it doesn't exist
+        
         try:
             self.df = pd.read_csv(data_path, encoding='utf-8')
         except UnicodeDecodeError:
             self.df = pd.read_csv(data_path, encoding='latin-1')
+
         self.ai_proxy_token = os.environ.get("AIPROXY_TOKEN")
         if not self.ai_proxy_token:
             raise ValueError("AIPROXY_TOKEN environment variable not set")
@@ -99,7 +105,7 @@ class DataAnalysisTool:
             sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
             plt.title('Correlation Heatmap')
             plt.tight_layout()
-            plt.savefig('correlation_matrix.png')
+            plt.savefig(os.path.join(self.output_dir, 'correlation_matrix.png'))
             plt.close()
 
         # Distribution of Numeric Columns
@@ -109,7 +115,7 @@ class DataAnalysisTool:
             sns.histplot(self.df[col].dropna(), kde=True)
             plt.title(f'Distribution of {col}')
         plt.tight_layout()
-        plt.savefig('numeric_distributions.png')
+        plt.savefig(os.path.join(self.output_dir, 'numeric_distributions.png'))
         plt.close()
 
     def generate_narrative(self, analysis_results: Dict[str, Any]) -> str:
@@ -163,7 +169,8 @@ class DataAnalysisTool:
 
         narrative = self.generate_narrative(analysis_results)
 
-        with open('README.md', 'w', encoding='utf-8') as file:
+        # Save README.md in the dataset folder
+        with open(os.path.join(self.output_dir, 'README.md'), 'w', encoding='utf-8') as file:
             file.write(narrative)
 
 def main():
