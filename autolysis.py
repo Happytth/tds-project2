@@ -1,17 +1,4 @@
-# /// script
-# requires-python = ">=3.7"
-# dependencies = [
-#   "os",
-#   "sys",
-#   "json",
-#   "requests",
-#   "pandas",
-#   "seaborn",
-#   "matplotlib",
-#   "scikit-learn",
-#   "numpy"
-# ]
-# ///
+
 # /// script
 # requires-python = ">=3.7"
 # dependencies = [
