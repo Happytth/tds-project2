@@ -104,7 +104,8 @@ class DataAnalysisTool:
             sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
             plt.title('Correlation Heatmap')
             plt.tight_layout()
-            plt.savefig(os.path.join(self.output_dir, 'correlation_matrix.png'))
+            heatmap_path = os.path.join(self.output_dir, 'correlation_matrix.png')
+            plt.savefig(heatmap_path)
             plt.close()
 
         # Distribution of Numeric Columns
@@ -113,24 +114,31 @@ class DataAnalysisTool:
             plt.subplot(1, 3, i)
             sns.histplot(self.df[col].dropna(), kde=True)
             plt.title(f'Distribution of {col}')
+        dist_path = os.path.join(self.output_dir, 'numeric_distributions.png')
         plt.tight_layout()
-        plt.savefig(os.path.join(self.output_dir, 'numeric_distributions.png'))
+        plt.savefig(dist_path)
         plt.close()
 
-    def generate_narrative(self, analysis_results: Dict[str, Any]) -> str:
+        return heatmap_path, dist_path  # Return paths to the visualizations
+
+    def generate_narrative(self, analysis_results: Dict[str, Any], visualization_paths: list) -> str:
         prompt = f"""
         Write a detailed analysis of this dataset with the following components:
         1. Description of the dataset, including size and column details.
         2. Insights on entropy for categorical columns.
         3. Key findings from the Latent Dirichlet Allocation (LDA) analysis for topics.
-        4. Any other potential observations and implications for further analysis.
-        Use Markdown formatting.
-	5. Write down the interesting findings.
+        4. Include relevant visualizations in Markdown formatting and write down what you found interesting in the images (e.g., correlation heatmap, distribution plots).
+        5. Any other potential observations and implications for further analysis.
+	6. Write the interesting findings.
 
         Dataset Details:
         {json.dumps(analysis_results['dataset_summary'], indent=2)}
         Entropy Analysis:
         {json.dumps(analysis_results['entropy_analysis'], indent=2)}
+
+        Visualizations:
+        ![Correlation Heatmap]({visualization_paths[0]})
+        ![Numeric Distributions]({visualization_paths[1]})
         """
 
         payload = {
@@ -161,12 +169,12 @@ class DataAnalysisTool:
 
     def execute(self):
         analysis_results = self.perform_analysis()
-        self.create_visualizations(analysis_results)
+        visualization_paths = self.create_visualizations(analysis_results)
 
         lda_results = self.perform_lda_analysis(num_topics=5)
         analysis_results['lda_analysis'] = lda_results
 
-        narrative = self.generate_narrative(analysis_results)
+        narrative = self.generate_narrative(analysis_results, visualization_paths)
 
         # Save README.md in the dataset folder
         with open(os.path.join(self.output_dir, 'README.md'), 'w', encoding='utf-8') as file:
@@ -183,3 +191,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
