@@ -12,7 +12,20 @@
 #   "numpy"
 # ]
 # ///
-
+# /// script
+# requires-python = ">=3.7"
+# dependencies = [
+#   "os",
+#   "sys",
+#   "json",
+#   "requests",
+#   "pandas",
+#   "seaborn",
+#   "matplotlib",
+#   "scikit-learn",
+#   "numpy"
+# ]
+# ///
 import os
 import sys
 import json
@@ -29,13 +42,16 @@ import math
 os.environ["AIPROXY_TOKEN"] = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjIwMDUwMTRAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.4M6INtFWixQ7nWjWl2nkN3Wcopybkd_ZWa-tVf4d8FM"
 
 class DataAnalysisTool:
-    def _init_(self, data_path: str):
+    def __init__(self, data_path: str):
         self.data_path = data_path
-        self.df = pd.read_csv(data_path, encoding='latin-1')
+        try:
+            self.df = pd.read_csv(data_path, encoding='utf-8')
+        except UnicodeDecodeError:
+            self.df = pd.read_csv(data_path, encoding='latin-1')
         self.ai_proxy_token = os.environ.get("AIPROXY_TOKEN")
         if not self.ai_proxy_token:
             raise ValueError("AIPROXY_TOKEN environment variable not set")
-        
+
         self.api_url = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
 
     def compute_entropy(self, column: pd.Series) -> float:
