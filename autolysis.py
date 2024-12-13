@@ -169,18 +169,21 @@ class DataAnalysisTool:
             return f"Error generating response: {str(e)}"
 
     def execute(self):
+        print("Starting the analysis...")
         analysis_results = self.perform_analysis()
         visualization_paths = self.create_visualizations(analysis_results)
 
         lda_results = self.perform_lda_analysis(num_topics=5)
         analysis_results['lda_analysis'] = lda_results
 
+        print("Generating narrative...")
         narrative = self.generate_narrative(analysis_results, visualization_paths)
 
-        # Save README.md in the dataset folder
+        print(f"Saving README.md to {self.output_dir}")
         with open(os.path.join(self.output_dir, 'README.md'), 'w', encoding='utf-8') as file:
             file.write(narrative)
-
+        print("README.md saved!")
+	    
 def main():
     if len(sys.argv) != 2:
         print("Usage: python analyze_data.py <dataset.csv>")
