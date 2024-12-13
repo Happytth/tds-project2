@@ -6,7 +6,7 @@
 #   "seaborn",
 #   "matplotlib",
 #   "scikit-learn",
-#   "numpy"
+#   "numpy",
 #   "ipykernel"
 # ]
 # ///
