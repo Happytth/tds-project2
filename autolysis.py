@@ -32,10 +32,9 @@ os.environ["AIPROXY_TOKEN"] = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjIwMDUwMTRA
 class DataAnalysisTool:
     def __init__(self, data_path: str):
         self.data_path = data_path
-        # Extract dataset name from the file path and use it to create an output folder
-        self.output_dir = os.path.join(os.path.dirname(data_path), os.path.splitext(os.path.basename(data_path))[0])
-        os.makedirs(self.output_dir, exist_ok=True)  # Create the output directory if it doesn't exist
-        
+        # Do not create a directory; use the current directory for saving outputs
+        self.output_dir = os.getcwd()  # Current working directory
+
         try:
             self.df = pd.read_csv(data_path, encoding='utf-8')
         except UnicodeDecodeError:
@@ -105,7 +104,7 @@ class DataAnalysisTool:
             sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
             plt.title('Correlation Heatmap')
             plt.tight_layout()
-            heatmap_path = os.path.join(self.output_dir, 'correlation_matrix.png')
+            heatmap_path = os.path.join(self.output_dir, 'correlation_matrix.png')  # Direct path
             plt.savefig(heatmap_path)
             plt.close()
 
@@ -115,7 +114,7 @@ class DataAnalysisTool:
             plt.subplot(1, 3, i)
             sns.histplot(self.df[col].dropna(), kde=True)
             plt.title(f'Distribution of {col}')
-        dist_path = os.path.join(self.output_dir, 'numeric_distributions.png')
+        dist_path = os.path.join(self.output_dir, 'numeric_distributions.png')  # Direct path
         plt.tight_layout()
         plt.savefig(dist_path)
         plt.close()
@@ -130,7 +129,7 @@ class DataAnalysisTool:
         3. Key findings from the Latent Dirichlet Allocation (LDA) analysis for topics.
         4. Include relevant visualizations in Markdown formatting and write down what you found interesting in the images (e.g., correlation heatmap, distribution plots).
         5. Any other potential observations and implications for further analysis.
-	6. Write the interesting findings.
+        6. Write the interesting findings.
 
         Dataset Details:
         {json.dumps(analysis_results['dataset_summary'], indent=2)}
@@ -183,7 +182,7 @@ class DataAnalysisTool:
         with open(os.path.join(self.output_dir, 'README.md'), 'w', encoding='utf-8') as file:
             file.write(narrative)
         print("README.md saved!")
-	    
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python analyze_data.py <dataset.csv>")
@@ -195,4 +194,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
