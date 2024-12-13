@@ -80,7 +80,8 @@ class DataAnalysisTool:
         analysis_results['entropy_analysis'] = entropy_values
 
         return analysis_results
-
+        
+    #LDA Analysis
     def perform_lda_analysis(self, num_topics: int = 5) -> Dict[str, Any]:
         """Perform Latent Dirichlet Allocation (LDA) on text columns."""
         text_columns = self.df.select_dtypes(include=['object', 'category']).columns
