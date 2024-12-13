@@ -34,17 +34,27 @@ class DataAnalysisTool:
         self.data_path = data_path
         # Do not create a directory; use the current directory for saving outputs
         self.output_dir = os.getcwd()  # Current working directory
-
-        try:
-            self.df = pd.read_csv(data_path, encoding='utf-8')
-        except UnicodeDecodeError:
-            self.df = pd.read_csv(data_path, encoding='latin-1')
-
+    
+        # Try multiple encodings in sequence
+        encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1', 'utf-16', 'utf-32', 'cp1250', 'mac_roman']
+        
+        for encoding in encodings:
+            try:
+                self.df = pd.read_csv(data_path, encoding=encoding)
+                print(f"File successfully loaded with {encoding} encoding.")
+                break
+            except UnicodeDecodeError:
+                print(f"Failed to load the file with {encoding} encoding.")
+                continue
+        else:
+            raise ValueError("Failed to load the file with supported encodings.")
+    
         self.ai_proxy_token = os.environ.get("AIPROXY_TOKEN")
         if not self.ai_proxy_token:
             raise ValueError("AIPROXY_TOKEN environment variable not set")
-
+    
         self.api_url = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
+
 
     def compute_entropy(self, column: pd.Series) -> float:
         """Calculates Shannon entropy of a given column."""
