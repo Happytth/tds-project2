@@ -1,9 +1,6 @@
 # /// script
 # requires-python = ">=3.7"
 # dependencies = [
-#   "os",
-#   "sys",
-#   "json",
 #   "requests",
 #   "pandas",
 #   "seaborn",
@@ -12,6 +9,7 @@
 #   "numpy"
 # ]
 # ///
+
 import os
 import sys
 import json
