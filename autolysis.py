@@ -22,68 +22,59 @@ from typing import Dict, Any
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
-import math
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # Non-interactive backend for matplotlib
 
-# Set your AIPROXY_TOKEN here
-os.environ["AIPROXY_TOKEN"] = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjIwMDUwMTRAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.4M6INtFWixQ7nWjWl2nkN3Wcopybkd_ZWa-tVf4d8FM"
+# Ensure the AI Proxy Token is set correctly
+AI_PROXY_ENV = "AIPROXY_TOKEN"
+if not os.getenv(AI_PROXY_ENV):
+    raise ValueError("Error: AIPROXY_TOKEN environment variable not set.")
 
+# Define the main class
 class DataAnalysisTool:
     def __init__(self, data_path: str):
         self.data_path = data_path
-        # Do not create a directory; use the current directory for saving outputs
-        self.output_dir = os.getcwd()  # Current working directory
-    
-        # Try multiple encodings in sequence
-        encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1', 'utf-16', 'utf-32', 'cp1250', 'mac_roman']
+        self.output_dir = os.getcwd()  # Current directory for saving outputs
         
+        # Load data with fallback encodings
+        encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1']
         for encoding in encodings:
             try:
                 self.df = pd.read_csv(data_path, encoding=encoding)
                 print(f"File successfully loaded with {encoding} encoding.")
                 break
             except UnicodeDecodeError:
-                print(f"Failed to load the file with {encoding} encoding.")
                 continue
         else:
             raise ValueError("Failed to load the file with supported encodings.")
-    
-        self.ai_proxy_token = os.environ.get("AIPROXY_TOKEN")
-        if not self.ai_proxy_token:
-            raise ValueError("AIPROXY_TOKEN environment variable not set")
-    
+        
+        self.ai_proxy_token = os.getenv(AI_PROXY_ENV)
         self.api_url = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
 
-
     def compute_entropy(self, column: pd.Series) -> float:
-        """Calculates Shannon entropy of a given column."""
+        """Calculate Shannon entropy for a given column."""
         value_counts = column.value_counts(normalize=True)
         return -sum(value_counts * np.log2(value_counts))
 
     def perform_analysis(self) -> Dict[str, Any]:
-        analysis_results = {
-            "dataset_summary": {
-                "num_rows": len(self.df),
-                "columns": list(self.df.columns),
-                "column_types": {col: str(dtype) for col, dtype in self.df.dtypes.items()},
-                "missing_data": self.df.isnull().sum().to_dict(),
-                "sample_data": self.df.head().to_dict()
-            }
+        """Generate a basic summary and entropy analysis of the dataset."""
+        summary = {
+            "num_rows": len(self.df),
+            "columns": list(self.df.columns),
+            "column_types": self.df.dtypes.astype(str).to_dict(),
+            "missing_data": self.df.isnull().sum().to_dict(),
         }
 
-        # Entropy Analysis
-        entropy_values = {}
-        for column in self.df.select_dtypes(include=['object', 'category']).columns:
-            entropy_values[column] = self.compute_entropy(self.df[column])
+        # Entropy analysis for categorical columns
+        entropy_analysis = {
+            col: self.compute_entropy(self.df[col])
+            for col in self.df.select_dtypes(include=['object', 'category'])
+        }
 
-        analysis_results['entropy_analysis'] = entropy_values
+        return {"summary": summary, "entropy_analysis": entropy_analysis}
 
-        return analysis_results
-        
-    #LDA Analysis
     def perform_lda_analysis(self, num_topics: int = 5) -> Dict[str, Any]:
-        """Perform Latent Dirichlet Allocation (LDA) on text columns."""
+        """Perform LDA topic modeling on text columns."""
         text_columns = self.df.select_dtypes(include=['object', 'category']).columns
         lda_results = {}
 
@@ -95,11 +86,12 @@ class DataAnalysisTool:
             lda = LatentDirichletAllocation(n_components=num_topics, random_state=42)
             lda.fit(data_vectorized)
 
-            topics = []
-            for topic_idx, topic in enumerate(lda.components_):
-                topic_terms = [vectorizer.get_feature_names_out()[i] for i in topic.argsort()[:-10 - 1:-1]]
-                topics.append(f"Topic {topic_idx + 1}: {' '.join(topic_terms)}")
-            
+            topics = [
+                " ".join(
+                    [vectorizer.get_feature_names_out()[i] for i in topic.argsort()[:-11:-1]]
+                )
+                for topic in lda.components_
+            ]
             lda_results[column] = topics
 
         return lda_results
@@ -132,6 +124,7 @@ class DataAnalysisTool:
 
         return heatmap_path, dist_path  # Return paths to the visualizations
 
+    # Kept generate_narrative completely intact
     def generate_narrative(self, analysis_results: Dict[str, Any], visualization_paths: list) -> str:
         prompt = f"""
         Write a detailed analysis of this dataset with the following components:
@@ -179,20 +172,19 @@ class DataAnalysisTool:
             return f"Error generating response: {str(e)}"
 
     def execute(self):
-        print("Starting the analysis...")
-        analysis_results = self.perform_analysis()
-        visualization_paths = self.create_visualizations(analysis_results)
+        """Run all steps of the analysis."""
+        print("Running analysis...")
+        analysis = self.perform_analysis()
+        lda_results = self.perform_lda_analysis()
+        analysis['lda_analysis'] = lda_results
 
-        lda_results = self.perform_lda_analysis(num_topics=5)
-        analysis_results['lda_analysis'] = lda_results
+        vis_paths = self.create_visualizations(analysis)
+        narrative = self.generate_narrative(analysis, vis_paths)
 
-        print("Generating narrative...")
-        narrative = self.generate_narrative(analysis_results, visualization_paths)
+        with open(os.path.join(self.output_dir, "README.md"), "w", encoding="utf-8") as f:
+            f.write(narrative)
+        print("README.md saved successfully!")
 
-        print(f"Saving README.md to {self.output_dir}")
-        with open(os.path.join(self.output_dir, 'README.md'), 'w', encoding='utf-8') as file:
-            file.write(narrative)
-        print("README.md saved!")
 
 def main():
     if len(sys.argv) != 2:
@@ -202,6 +194,7 @@ def main():
     data_path = sys.argv[1]
     analyzer = DataAnalysisTool(data_path)
     analyzer.execute()
+
 
 if __name__ == "__main__":
     main()
