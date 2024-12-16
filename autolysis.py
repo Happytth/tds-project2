@@ -30,12 +30,12 @@ AI_PROXY_ENV = "AIPROXY_TOKEN"
 if not os.getenv(AI_PROXY_ENV):
     raise ValueError("Error: AIPROXY_TOKEN environment variable not set.")
 
-# Define the main class
+
 class DataAnalysisTool:
     def __init__(self, data_path: str):
         self.data_path = data_path
         self.output_dir = os.getcwd()  # Current directory for saving outputs
-        
+
         # Load data with fallback encodings
         encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1']
         for encoding in encodings:
@@ -47,11 +47,10 @@ class DataAnalysisTool:
                 continue
         else:
             raise ValueError("Failed to load the file with supported encodings.")
-        
+
         self.ai_proxy_token = os.getenv(AI_PROXY_ENV)
         self.api_url = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
 
-    #performs entripy analysis
     def compute_entropy(self, column: pd.Series) -> float:
         """Calculate Shannon entropy for a given column."""
         value_counts = column.value_counts(normalize=True)
@@ -73,8 +72,7 @@ class DataAnalysisTool:
         }
 
         return {"summary": summary, "entropy_analysis": entropy_analysis}
-        
-#performss lda analysis
+
     def perform_lda_analysis(self, num_topics: int = 5) -> Dict[str, Any]:
         """Perform LDA topic modeling on text columns."""
         text_columns = self.df.select_dtypes(include=['object', 'category']).columns
@@ -98,37 +96,40 @@ class DataAnalysisTool:
 
         return lda_results
 
-    #creates visualizations 
     def create_visualizations(self, analysis_results: Dict[str, Any]):
-        plt.figure(figsize=(20, 20))
-        
-        # Correlation Heatmap
+        """Create visualizations using seaborn and save them as PNG files."""
         numeric_cols = self.df.select_dtypes(include=['float64', 'int64']).columns
+        vis_paths = []
+
+        # Correlation Heatmap
         if len(numeric_cols) > 1:
-            plt.subplot(1, 2, 1)
+            plt.figure(figsize=(10, 8))
             correlation_matrix = self.df[numeric_cols].corr()
             sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
             plt.title('Correlation Heatmap')
             plt.tight_layout()
-            heatmap_path = os.path.join(self.output_dir, 'correlation_matrix.png')  # Direct path
+            heatmap_path = os.path.join(self.output_dir, 'correlation_matrix.png')
             plt.savefig(heatmap_path)
             plt.close()
+            vis_paths.append(heatmap_path)
 
         # Distribution of Numeric Columns
-        plt.figure(figsize=(10, 6))
-        for i, col in enumerate(numeric_cols[:3], 1):
-            plt.subplot(1, 3, i)
-            sns.histplot(self.df[col].dropna(), kde=True)
-            plt.title(f'Distribution of {col}')
-        dist_path = os.path.join(self.output_dir, 'numeric_distributions.png')  # Direct path
-        plt.tight_layout()
-        plt.savefig(dist_path)
-        plt.close()
+        if len(numeric_cols) > 0:
+            plt.figure(figsize=(10, 6))
+            for i, col in enumerate(numeric_cols[:3], 1):
+                plt.subplot(1, 3, i)
+                sns.histplot(self.df[col].dropna(), kde=True)
+                plt.title(f'Distribution of {col}')
+            dist_path = os.path.join(self.output_dir, 'numeric_distributions.png')
+            plt.tight_layout()
+            plt.savefig(dist_path)
+            plt.close()
+            vis_paths.append(dist_path)
 
-        return heatmap_path, dist_path  # Return paths to the visualizations
+        return vis_paths
 
-    # generates summary or narrative by help of llm 
     def generate_narrative(self, analysis_results: Dict[str, Any], visualization_paths: list) -> str:
+        """Generate a dataset summary using the LLM API."""
         prompt = f"""
         Write a detailed analysis of this dataset with the following components:
         1. Description of the dataset, including size and column details.
@@ -161,7 +162,7 @@ class DataAnalysisTool:
         try:
             print("Requesting analysis...")
             response = requests.post(self.api_url, headers=headers, json=payload)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 print("Analysis received!")
@@ -173,23 +174,22 @@ class DataAnalysisTool:
             print("Error encountered!")
             print(f"Error details: {e}")
             return f"Error generating response: {str(e)}"
-            
-#function for executing all the analysis
+
     def execute(self):
         """Run all steps of the analysis."""
         print("Running analysis...")
-        analysis = self.perform_analysis()
+        analysis_results = self.perform_analysis()
         lda_results = self.perform_lda_analysis()
-        analysis['lda_analysis'] = lda_results
+        analysis_results['lda_analysis'] = lda_results
 
-        vis_paths = self.create_visualizations(analysis)
-        narrative = self.generate_narrative(analysis, vis_paths)
+        vis_paths = self.create_visualizations(analysis_results)
+        narrative = self.generate_narrative(analysis_results, vis_paths)
 
         with open(os.path.join(self.output_dir, "README.md"), "w", encoding="utf-8") as f:
             f.write(narrative)
         print("README.md saved successfully!")
 
-#main function 
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python analyze_data.py <dataset.csv>")
@@ -202,4 +202,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
