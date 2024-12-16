@@ -23,7 +23,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend for matplotlib
+matplotlib.use('TkAgg')  # Non-interactive backend for matplotlib
 
 # Ensure the AI Proxy Token is set correctly
 AI_PROXY_ENV = "AIPROXY_TOKEN"
@@ -51,6 +51,7 @@ class DataAnalysisTool:
         self.ai_proxy_token = os.getenv(AI_PROXY_ENV)
         self.api_url = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
 
+    #performs entripy analysis
     def compute_entropy(self, column: pd.Series) -> float:
         """Calculate Shannon entropy for a given column."""
         value_counts = column.value_counts(normalize=True)
@@ -72,7 +73,8 @@ class DataAnalysisTool:
         }
 
         return {"summary": summary, "entropy_analysis": entropy_analysis}
-
+        
+#performss lda analysis
     def perform_lda_analysis(self, num_topics: int = 5) -> Dict[str, Any]:
         """Perform LDA topic modeling on text columns."""
         text_columns = self.df.select_dtypes(include=['object', 'category']).columns
@@ -96,6 +98,7 @@ class DataAnalysisTool:
 
         return lda_results
 
+    #creates visualizations 
     def create_visualizations(self, analysis_results: Dict[str, Any]):
         plt.figure(figsize=(20, 20))
         
@@ -124,7 +127,7 @@ class DataAnalysisTool:
 
         return heatmap_path, dist_path  # Return paths to the visualizations
 
-    # Kept generate_narrative completely intact
+    # generates summary or narrative by help of llm 
     def generate_narrative(self, analysis_results: Dict[str, Any], visualization_paths: list) -> str:
         prompt = f"""
         Write a detailed analysis of this dataset with the following components:
@@ -170,7 +173,8 @@ class DataAnalysisTool:
             print("Error encountered!")
             print(f"Error details: {e}")
             return f"Error generating response: {str(e)}"
-
+            
+#function for executing all the analysis
     def execute(self):
         """Run all steps of the analysis."""
         print("Running analysis...")
@@ -185,7 +189,7 @@ class DataAnalysisTool:
             f.write(narrative)
         print("README.md saved successfully!")
 
-
+#main function 
 def main():
     if len(sys.argv) != 2:
         print("Usage: python analyze_data.py <dataset.csv>")
