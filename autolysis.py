@@ -23,7 +23,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')  # Non-interactive backend for matplotlib
+matplotlib.use('Agg')  # Non-interactive backend for matplotlib
 
 # Ensure the AI Proxy Token is set correctly
 AI_PROXY_ENV = "AIPROXY_TOKEN"
