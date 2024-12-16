@@ -130,28 +130,57 @@ class DataAnalysisTool:
 
     def generate_narrative(self, analysis_results: Dict[str, Any], visualization_paths: list) -> str:
         """Generate a dataset summary using the LLM API."""
-        prompt = f"""
-        Write a detailed analysis of this dataset with the following components:
-        1. Description of the dataset, including size and column details.
-        2. Insights on entropy for categorical columns.
-        3. Key findings from the Latent Dirichlet Allocation (LDA) analysis for topics.
-        4. Include relevant visualizations in Markdown formatting and write down what you found interesting in the images (e.g., correlation heatmap, distribution plots).
-        5. Any other potential observations and implications for further analysis.
-        6. Write the interesting findings.
-
-        Dataset Details:
-        {json.dumps(analysis_results['summary'], indent=2)}
-        Entropy Analysis:
-        {json.dumps(analysis_results['entropy_analysis'], indent=2)}
-
-        Visualizations:
-        ![Correlation Heatmap]({visualization_paths[0]})
-        ![Numeric Distributions]({visualization_paths[1]})
-        """
-
         payload = {
             "model": "gpt-4o-mini",
-            "messages": [{"role": "user", "content": prompt}]
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a data analysis assistant generating detailed insights based on provided results."
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+                    Analyze the dataset and provide the following details:
+                    1. Dataset description, including size and column details.
+                    2. Insights into entropy for categorical columns.
+                    3. Findings from the Latent Dirichlet Allocation (LDA) analysis.
+                    4. Observations from the visualizations provided:
+                       - Correlation Heatmap
+                       - Numeric Distributions
+                    5. Additional observations and suggestions for further exploration.
+                    6. Use Markdown formattins.
+                    7. Write down the interesting findings 
+                    
+                    Dataset Summary:
+                    {json.dumps(analysis_results['summary'], indent=2)}
+                    Entropy Analysis:
+                    {json.dumps(analysis_results['entropy_analysis'], indent=2)}
+                    
+                    Visualizations:
+                    - Correlation Heatmap: {visualization_paths[0]}
+                    - Numeric Distributions: {visualization_paths[1]}
+                    """
+                }
+            ],
+            "functions": [
+                {
+                    "name": "analyze_dataset",
+                    "description": "Provide detailed insights into the dataset and associated visualizations.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "summary": {"type": "string", "description": "Summary of the dataset."},
+                            "entropy_analysis": {"type": "string", "description": "Insights into entropy for categorical columns."},
+                            "lda_analysis": {"type": "string", "description": "Findings from LDA topic modeling."},
+                            "visualizations": {"type": "array", "items": {"type": "string"}, "description": "Paths to visualizations."}
+                        },
+                        "required": ["summary", "entropy_analysis", "lda_analysis", "visualizations"]
+                    }
+                }
+            ],
+            "function_call": {
+                "name": "analyze_dataset"
+            }
         }
 
         headers = {
@@ -202,3 +231,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
